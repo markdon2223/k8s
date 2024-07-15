@@ -1,0 +1,366 @@
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+cvat:
+  backend:
+    labels: {}
+    annotations: {}
+    resources: {}
+    affinity: {}
+    tolerations: []
+    additionalEnv: []
+    additionalVolumes: []
+    additionalVolumeMounts: []
+    serviceAccount:
+      name: default
+
+    initializer:
+      labels: {}
+      annotations: {}
+      resources: {}
+      affinity: {}
+      tolerations: []
+      additionalEnv: []
+      additionalVolumes: []
+      additionalVolumeMounts: []
+    server:
+      replicas: 1
+      labels: {}
+      annotations: {}
+      resources: {}
+      affinity: {}
+      tolerations: []
+      envs:
+        ALLOWED_HOSTS: "*"
+      additionalEnv: []
+      additionalVolumes: []
+      additionalVolumeMounts: []
+    worker:
+      export:
+        replicas: 2
+        labels: {}
+        annotations: {}
+        resources: {}
+        affinity: {}
+        tolerations: []
+        additionalEnv: []
+        additionalVolumes: []
+        additionalVolumeMounts: []
+      import:
+        replicas: 2
+        labels: {}
+        annotations: {}
+        resources: {}
+        affinity: {}
+        tolerations: []
+        additionalEnv: []
+        additionalVolumes: []
+        additionalVolumeMounts: []
+      annotation:
+        replicas: 1
+        labels: {}
+        annotations: {}
+        resources: {}
+        affinity: {}
+        tolerations: []
+        additionalEnv: []
+        additionalVolumes: []
+        additionalVolumeMounts: []
+      webhooks:
+        replicas: 1
+        labels: {}
+        annotations: {}
+        resources: {}
+        affinity: {}
+        tolerations: []
+        additionalEnv: []
+        additionalVolumes: []
+        additionalVolumeMounts: []
+      qualityreports:
+        replicas: 1
+        labels: {}
+        annotations: {}
+        resources: {}
+        affinity: {}
+        tolerations: []
+        additionalEnv: []
+        additionalVolumes: []
+        additionalVolumeMounts: []
+      analyticsreports:
+        replicas: 1
+        labels: {}
+        annotations: {}
+        resources: {}
+        affinity: {}
+        tolerations: []
+        additionalEnv: []
+        additionalVolumes: []
+        additionalVolumeMounts: []
+    utils:
+      replicas: 1
+      labels: {}
+      annotations: {}
+      resources: {}
+      affinity: {}
+      tolerations: []
+      additionalEnv: []
+      additionalVolumes: []
+      additionalVolumeMounts: []
+    replicas: 1
+    image: cvat/server
+    tag: dev
+    imagePullPolicy: Always
+    permissionFix:
+      enabled: true
+    service:
+      annotations:
+        traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+      spec:
+        type: ClusterIP
+        ports:
+          - port: 8080
+            targetPort: 8080
+            protocol: TCP
+            name: http
+    defaultStorage:
+      enabled: true
+      storageClassName: default
+      accessModes:
+        - ReadWriteOnce
+      size: 20Gi
+    disableDistinctCachePerService: false
+  frontend:
+    replicas: 1
+    image: cvat/ui
+    tag: dev
+    imagePullPolicy: Always
+    labels: {}
+    annotations: {}
+    resources: {}
+    affinity: {}
+    tolerations: []
+    additionalEnv: []
+    additionalVolumes: []
+    additionalVolumeMounts: []
+    service:
+      type: ClusterIP
+      ports:
+        - port: 80
+          targetPort: 80
+          protocol: TCP
+          name: http
+  opa:
+    replicas: 1
+    image: openpolicyagent/opa
+    tag: 0.63.0
+    imagePullPolicy: IfNotPresent
+    labels: {}
+    annotations: {}
+    resources: {}
+    affinity: {}
+    tolerations: []
+    additionalEnv: []
+    additionalVolumes: []
+    additionalVolumeMounts: []
+    composeCompatibleServiceName: true
+    service:
+      type: ClusterIP
+      ports:
+        - port: 8181
+          targetPort: 8181
+          protocol: TCP
+          name: http
+
+  kvrocks:
+    enabled: true
+    external:
+      host: kvrocks-external.localdomain
+    existingSecret: "cvat-kvrocks-secret"
+    secret:
+      create: true
+      name: cvat-kvrocks-secret
+      password: cvat_kvrocks
+    image: apache/kvrocks
+    tag: 2.7.0
+    imagePullPolicy: IfNotPresent
+    labels: {}
+    annotations: {}
+    resources: {}
+    affinity: {}
+    tolerations: []
+    nodeAffinity: {}
+    additionalEnv: []
+    additionalVolumes: []
+    additionalVolumeMounts: []
+    defaultStorage:
+      enabled: true
+      storageClassName: default
+      accessModes:
+        - ReadWriteOnce
+      size: 100Gi
+
+postgresql:
+  enabled: true
+  external:
+    host: ""
+    port: ""
+  auth:
+    existingSecret: "{{ .Release.Name }}-postgres-secret"
+    username: cvat
+    database: cvat
+  service:
+    ports:
+      postgresql: 5432
+  secret:
+    create: true
+    name: "{{ .Release.Name }}-postgres-secret"
+    password: cvat_postgresql
+    postgres_password: cvat_postgresql_postgres
+    replication_password: cvat_postgresql_replica
+
+redis:
+  enabled: true
+  external:
+    host: 127.0.0.1
+  architecture: standalone
+  auth:
+    existingSecret: "cvat-redis-secret"
+    existingSecretPasswordKey: password
+  secret:
+    create: true
+    name: cvat-redis-secret
+    password: cvat_redis
+
+nuclio:
+  enabled: false
+
+analytics:
+  enabled: false
+  clickhouseDb: cvat
+  clickhouseUser: user
+  clickhousePassword: user
+  clickhouseHost: "{{ .Release.Name }}-clickhouse"
+  clickhousePort: 8123
+
+vector:
+  envFrom:
+    - secretRef:
+        name: cvat-analytics-secret
+  existingConfigMaps:
+    - cvat-vector-config
+  dataDir: "/vector-data-dir"
+  containerPorts:
+    - name: http
+      containerPort: 80
+      protocol: TCP
+  service:
+    ports:
+      - name: http
+        port: 80
+        protocol: TCP
+  image:
+    tag: "0.26.0-alpine"
+
+clickhouse:
+  enabled: true
+  shards: 1
+  replicaCount: 1
+  extraEnvVarsSecret: cvat-analytics-secret
+  initdbScriptsSecret: cvat-clickhouse-init
+  auth:
+    username: user
+    existingSecret: cvat-analytics-secret
+    existingSecretKey: CLICKHOUSE_PASSWORD
+  zookeeper:
+    enabled: false
+
+grafana:
+  envFromSecret: cvat-analytics-secret
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: 'ClickHouse'
+        type: 'grafana-clickhouse-datasource'
+        isDefault: true
+        jsonData:
+          defaultDatabase: ${CLICKHOUSE_DB}
+          port: ${CLICKHOUSE_PORT}
+          server: ${CLICKHOUSE_HOST}
+          username: ${CLICKHOUSE_USER}
+          tlsSkipVerify: false
+          protocol: http
+        secureJsonData:
+          password: ${CLICKHOUSE_PASSWORD}
+        editable: false
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+  dashboardsConfigMaps:
+    default: "cvat-grafana-dashboards"
+  plugins:
+    - grafana-clickhouse-datasource
+  grafana.ini:
+    server:
+      root_url: https://cvat.local/analytics
+    dashboards:
+      default_home_dashboard_path: /var/lib/grafana/dashboards/default/all_events.json
+    users:
+      viewers_can_edit: true
+    auth:
+      disable_login_form: true
+      disable_signout_menu: true
+    auth.anonymous:
+      enabled: true
+      org_role: Admin
+    auth.basic:
+      enabled: false
+
+ingress:
+  enabled: true
+  hostname: cvat.iamtanvir.xyz
+  annotations: {}
+  className: ""
+  tls: false
+  tlsSecretName: ingress-tls-cvat
+
+traefik:
+  enabled: true
+  logs:
+    general:
+      format: json
+    access:
+      enabled: true
+      format: json
+      fields:
+        general:
+          defaultmode: drop
+          names:
+            ClientHost: keep
+            DownstreamContentSize: keep
+            DownstreamStatus: keep
+            Duration: keep
+            RequestHost: keep
+            RequestMethod: keep
+            RequestPath: keep
+            RequestPort: keep
+            RequestProtocol: keep
+            RouterName: keep
+            StartUTC: keep
+  providers:
+    kubernetesIngress:
+      allowEmptyServices: true
+
+smokescreen:
+  opts: ''
+

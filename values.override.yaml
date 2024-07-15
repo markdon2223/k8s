@@ -1,0 +1,6 @@
+kvrocks:
+  defaultStorage:
+    size: 30Gi
+    storageClassName: default
+    accessModes:
+      - ReadWriteOnce
